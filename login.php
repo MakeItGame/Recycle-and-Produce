@@ -2,7 +2,7 @@
 // Database connection
 $servername = "localhost";
 $username = "webadmin";
-$password = '4fwe484eW4"8§%4§8/358&"§4rVG§$&§$T';
+$password = '235z4rqfr46ZTSDFR42124eF32fsdfASFEW12325sarASFWE1242465SDFEF';
 $dbname = "recycle_and_produce";
 
 // Create connection

@@ -2,7 +2,7 @@
 // Database connection
 $servername = "localhost";
 $username = "webadmin";
-$password = '4fwe484eW4"8§%4§8/358&"§$&§$T';
+$password = '235z4rqfr46ZTSDFR42124eF32fsdfASFEW12325sarASFWE1242465SDFEF';
 $dbname = "recycle_and_produce";
 
 // Create connection
@@ -52,7 +52,6 @@ body, html {
     margin: 0;
     padding: 0;
     height: 100%;
-    overflow: hidden;
     font-family: Arial, sans-serif;
 }
 
@@ -71,6 +70,10 @@ body, html {
     color: white;
     padding: 10px;
     text-align: left;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1;
 }
 
 .navbar a {
@@ -90,9 +93,12 @@ body, html {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    height: calc(100% - 50px); /* Adjust for navbar height */
+    min-height: 100%;
     padding: 20px;
     box-sizing: border-box;
+    overflow-y: auto;
+    position: relative;
+    top: 50px; /* Adjust for navbar height */
 }
 
 .box {
@@ -106,7 +112,6 @@ body, html {
     color: white;
     text-align: center;
     box-sizing: border-box;
-    flex-grow: 1;
 }
 
 .start-game-btn {
