@@ -1,55 +1,30 @@
 <?php
 // Database connection
 require_once 'config.php';
+require_once 'cookie_check.php';
 
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
+$conn = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_NAME);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Function to generate a random token
+list($token, $username) = checkGameToken($conn);
+
 function generateToken() {
-    return bin2hex(random_bytes(32)); // 32 bytes = 64 characters
+    return bin2hex(random_bytes(32));
 }
 
-$token = '';
 $registration_success = false;
 $message = '';
-$cookie_token = '';
+$cookie_token = $_COOKIE['game_token'] ?? '';
 
-if (isset($_COOKIE['game_token'])) {
-    $cookie_token = $_COOKIE['game_token'];
-
-    // Check if token exists in database
-    $sql = "SELECT username FROM users WHERE token = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $cookie_token);
-    $stmt->execute();
-    $stmt->store_result();
-    $stmt->bind_result($username);
-    $stmt->fetch();
-
-    if ($stmt->num_rows > 0) {
-        // Token is valid, redirect to index.php
-        header("Location: index.php");
-        exit();
-    } else {
-        // Token is invalid, delete the cookie
-        setcookie('game_token', '', time() - 3600, '/');
-        $message = "Token not found in the database. Please try again or register. Here is your token: $cookie_token";
-        echo "<script>alert('$message');</script>";
-    }
-
-    $stmt->close();
+if ($cookie_token && !$token) {
+    $message = "Token not found in the database. Please try again or register. Here is your token: $cookie_token";
+    echo "<script>alert('$message');</script>";
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST['username'];
-
-    // Check if username already exists
     $sql = "SELECT id FROM users WHERE username = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $username);
@@ -59,7 +34,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($stmt->num_rows > 0) {
         $message = "Username already taken. Please choose another one.";
     } else {
-        // Generate unique token
         do {
             $token = generateToken();
             $sql = "SELECT id FROM users WHERE token = ?";
@@ -69,14 +43,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->store_result();
         } while ($stmt->num_rows > 0);
 
-        // Insert new user into the database
         $sql = "INSERT INTO users (username, token) VALUES (?, ?)";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("ss", $username, $token);
-
         if ($stmt->execute()) {
             $registration_success = true;
-            setcookie('game_token', $token, time() + (86400 * 30), '/'); // 30 days
+            setcookie('game_token', $token, time() + (86400 * 30), '/');
             header("Location: index.php");
             exit();
         } else {
@@ -89,7 +61,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 $conn->close();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -183,7 +154,6 @@ $conn->close();
         <source src="background.mp4" type="video/mp4">
         Your browser does not support HTML5 video.
     </video>
-
     <div class="container">
         <?php if (!$registration_success): ?>
             <h2>Register</h2>

@@ -1,50 +1,25 @@
 <?php
 // Database connection
 require_once 'config.php';
+require_once 'cookie_check.php';
 
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
+$conn = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_NAME);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+list($token, $username) = checkGameToken($conn);
+
 $token_valid = false;
 $message = '';
-$username = '';
-$cookie_token = '';
 
-if (isset($_COOKIE['game_token'])) {
-    $cookie_token = $_COOKIE['game_token'];
-
-    // Check if token exists in database
-    $sql = "SELECT username FROM users WHERE token = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $cookie_token);
-    $stmt->execute();
-    $stmt->store_result();
-    $stmt->bind_result($username);
-    $stmt->fetch();
-
-    if ($stmt->num_rows > 0) {
-        // Token is valid, redirect to index.php
-        header("Location: index.php");
-        exit();
-    } else {
-        // Token is invalid, delete the cookie
-        setcookie('game_token', '', time() - 3600, '/');
-        $message = "Token not found in the database. Please try again or register. Here is your token: $cookie_token";
-        echo "<script>alert('$message');</script>";
-    }
-
-    $stmt->close();
+if ($token) {
+    header("Location: index.php");
+    exit();
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $token = $_POST['token'];
-
-    // Check if token exists
     $sql = "SELECT username FROM users WHERE token = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $token);
@@ -54,8 +29,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->fetch();
 
     if ($stmt->num_rows > 0) {
-        // Token is valid, set cookie and redirect to index.php
-        setcookie('game_token', $token, time() + (86400 * 30), '/'); // 30 days
+        setcookie('game_token', $token, time() + (86400 * 30), '/');
         $token_valid = true;
         header("Location: index.php");
         exit();

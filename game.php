@@ -44,7 +44,114 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Game Main Page</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+}
+
+.video-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -1;
+}
+
+.navbar {
+    background: #333;
+    color: white;
+    padding: 10px;
+    text-align: left;
+}
+
+.navbar a {
+    color: white;
+    padding: 14px 20px;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.navbar a:hover {
+    background: #ddd;
+    color: black;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: calc(100% - 50px); /* Adjust for navbar height */
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.box {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    width: 90%;
+    max-width: 600px;
+    margin: 10px;
+    color: white;
+    text-align: center;
+    box-sizing: border-box;
+    flex-grow: 1;
+}
+
+.start-game-btn {
+    width: 90%;
+    max-width: 600px;
+    padding: 15px;
+    background: #4caf50;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    margin: 20px;
+}
+
+.start-game-btn:hover {
+    background: #45a049;
+}
+
+.content {
+    padding: 15px;
+}
+
+h2 {
+    font-size: 1.6em;
+    margin: 10px 0;
+}
+
+p {
+    font-size: 1em;
+    margin: 10px 0;
+}
+
+@media (max-width: 600px) {
+    .box, .start-game-btn {
+        width: 100%;
+    }
+    .content {
+        padding: 10px;
+    }
+    h2 {
+        font-size: 1.5em;
+    }
+    p {
+        font-size: 1em;
+    }
+}
+    </style>
 </head>
 <body>
     <div class="navbar">
