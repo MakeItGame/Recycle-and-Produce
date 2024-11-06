@@ -1,9 +1,6 @@
 <?php
 // Database connection
-$servername = "localhost";
-$username = "webadmin";
-$password = '4fwe484eW4"8§%4§8/358&"§4rVG§$&§$T';
-$dbname = "recycle_and_produce";
+require_once 'config.php';
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
