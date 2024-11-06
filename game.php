@@ -1,39 +1,16 @@
 <?php
-// Database connection
+// Include configuration and cookie check files
 require_once 'config.php';
+require_once 'cookie_check.php';
 
 // Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
+$conn = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_NAME);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$token = '';
-$username = '';
-
-// Check if token is stored in cookies
-if (isset($_COOKIE['game_token'])) {
-    $token = $_COOKIE['game_token'];
-
-    // Fetch the username based on the token
-    $sql = "SELECT username FROM users WHERE token = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $token);
-    $stmt->execute();
-    $stmt->store_result();
-    $stmt->bind_result($username);
-    $stmt->fetch();
-
-    if ($stmt->num_rows == 0) {
-        // If token is invalid, clear the cookie
-        setcookie('game_token', '', time() - 3600, '/');
-        $token = '';
-    }
-
-    $stmt->close();
-}
+// Check the game token
+list($token, $username) = checkGameToken($conn);
 
 $conn->close();
 ?>
@@ -46,162 +23,195 @@ $conn->close();
     <title>Game Main Page</title>
     <style>
         body, html {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    overflow: hidden;
-    font-family: Arial, sans-serif;
-}
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
 
-.video-bg {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    z-index: -1;
-}
+        .video-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
 
-.navbar {
-    background: #333;
-    color: white;
-    padding: 10px;
-    text-align: left;
-}
+        .navbar {
+            background: #333;
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-.navbar a {
-    color: white;
-    padding: 14px 20px;
-    text-decoration: none;
-    display: inline-block;
-}
+        .nav-left {
+            display: flex;
+            align-items: center;
+        }
 
-.navbar a:hover {
-    background: #ddd;
-    color: black;
-}
+        .nav-right {
+            display: flex;
+            align-items: center;
+        }
 
-.container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: calc(100% - 50px); /* Adjust for navbar height */
-    padding: 20px;
-    box-sizing: border-box;
-}
+        .nav-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-left: 10px;
+        }
 
-.box {
-    background: rgba(0, 0, 0, 0.5);
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    width: 90%;
-    max-width: 600px;
-    margin: 10px;
-    color: white;
-    text-align: center;
-    box-sizing: border-box;
-    flex-grow: 1;
-}
+        .nav-button:hover {
+            background: #45a049;
+        }
 
-.start-game-btn {
-    width: 90%;
-    max-width: 600px;
-    padding: 15px;
-    background: #4caf50;
-    border: none;
-    border-radius: 5px;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    margin: 20px;
-}
+        .content-section {
+            display: none;
+            padding: 20px;
+        }
 
-.start-game-btn:hover {
-    background: #45a049;
-}
+        .content-section.active {
+            display: block;
+        }
 
-.content {
-    padding: 15px;
-}
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
 
-h2 {
-    font-size: 1.6em;
-    margin: 10px 0;
-}
+        .inventory-item {
+            background: #222;
+            padding: 10px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+        }
 
-p {
-    font-size: 1em;
-    margin: 10px 0;
-}
+        .inventory-item img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
 
-@media (max-width: 600px) {
-    .box, .start-game-btn {
-        width: 100%;
-    }
-    .content {
-        padding: 10px;
-    }
-    h2 {
-        font-size: 1.5em;
-    }
-    p {
-        font-size: 1em;
-    }
-}
+        .inventory-bar {
+            position: fixed;
+            top: 50px;
+            right: 0;
+            width: 300px;
+            height: calc(100% - 50px);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            overflow-y: auto;
+            transform: translateX(0);
+            transition: transform 0.3s ease-in-out;
+            z-index: 2;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .inventory-bar.minimized {
+            transform: translateX(100%);
+        }
+
+        .inventory-toggle-btn {
+            position: fixed;
+            top: 50px;
+            right: 0;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            z-index: 3;
+        }
+
+        .inventory-item {
+            margin-bottom: 10px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
     </style>
 </head>
 <body>
+    <video class="video-bg" autoplay muted loop>
+        <source src="background.mp4" type="video/mp4">
+        Your browser does not support HTML5 video.
+    </video>
+
     <div class="navbar">
-        <button class="nav-button" id="save-game-btn">Save Game</button>
-        <div>
+        <div class="nav-left">
             <button class="nav-button" data-target="home">Home</button>
             <button class="nav-button" data-target="inventory">Inventory</button>
-            <button class="nav-button" data-target="shop">Shop</button>
-            <!-- Add more buttons as needed -->
+            <?php if ($token): ?>
+                <span>Welcome, <?php echo htmlspecialchars($username); ?></span>
+            <?php else: ?>
+                <a href="login.php" class="nav-button">Login</a>
+                <a href="register.php" class="nav-button">Register</a>
+            <?php endif; ?>
         </div>
-        <?php if ($token): ?>
-            <span>Welcome, <?php echo htmlspecialchars($username); ?></span>
-        <?php else: ?>
-            <a href="login.php" class="nav-button">Login</a>
-            <a href="register.php" class="nav-button">Register</a>
-        <?php endif; ?>
+        <div class="nav-right">
+            <button class="nav-button" id="copy-token-btn">Copy Token</button>
+            <button class="nav-button" id="save-game-btn">Save Game</button>
+        </div>
+    </div>
+
+    <button class="inventory-toggle-btn" id="inventory-toggle-btn">☰</button>
+
+    <div class="inventory-bar minimized" id="inventory-bar">
+        <h3>Inventory</h3>
+        <div class="inventory-grid">
+            <?php for ($i = 1; $i <= 20; $i++): ?>
+                <div class="inventory-item">
+                    <img src="placeholder.png" alt="Item Image">
+                    <h4>Item <?php echo $i; ?></h4>
+                    <p>Lorem ipsum dolor sit amet.</p>
+                    <p>Count: <?php echo rand(1, 100); ?></p>
+                </div>
+            <?php endfor; ?>
+        </div>
     </div>
 
     <div id="content">
         <section id="home" class="content-section active">
             <h2>Welcome to EcoTycoon: Recycle and Prosper!</h2>
             <p>Step into the ultimate recycling simulation where your eco-vision transforms into a flourishing empire!</p>
-            <!-- Add more content as needed -->
         </section>
         <section id="inventory" class="content-section">
             <h2>Inventory</h2>
-            <p>Your inventory is empty.</p>
-            <!-- Add more content as needed -->
+            <div class="inventory-grid">
+                <?php for ($i = 1; $i <= 20; $i++): ?>
+                    <div class="inventory-item">
+                        <img src="placeholder.png" alt="Item Image">
+                        <h4>Item <?php echo $i; ?></h4>
+                        <p>Lorem ipsum dolor sit amet.</p>
+                        <p>Count: <?php echo rand(1, 100); ?></p>
+                    </div>
+                <?php endfor; ?>
+            </div>
         </section>
-        <section id="shop" class="content-section">
-            <h2>Shop</h2>
-            <p>Browse the shop items.</p>
-            <!-- Add more content as needed -->
-        </section>
-        <!-- Add more sections as needed -->
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const buttons = document.querySelectorAll('.nav-button[data-target]');
             const sections = document.querySelectorAll('.content-section');
+            const inventoryBar = document.getElementById('inventory-bar');
+            const inventoryToggleBtn = document.getElementById('inventory-toggle-btn');
 
             buttons.forEach(button => {
                 button.addEventListener('click', () => {
                     const target = button.getAttribute('data-target');
-
-                    sections.forEach(section => {
-                        section.classList.remove('active');
-                    });
-
+                    sections.forEach(section => section.classList.remove('active'));
                     document.getElementById(target).classList.add('active');
                 });
             });
@@ -210,7 +220,19 @@ p {
                 console.log('Save game functionality will be implemented later.');
             });
 
-            // Default to showing the home section
+            document.getElementById('copy-token-btn').addEventListener('click', () => {
+                const token = "<?php echo $token; ?>";
+                navigator.clipboard.writeText(token).then(() => {
+                    alert('Token copied to clipboard!');
+                }).catch(err => {
+                    console.error('Could not copy token: ', err);
+                });
+            });
+
+            inventoryToggleBtn.addEventListener('click', () => {
+                inventoryBar.classList.toggle('minimized');
+            });
+
             document.getElementById('home').classList.add('active');
         });
     </script>
